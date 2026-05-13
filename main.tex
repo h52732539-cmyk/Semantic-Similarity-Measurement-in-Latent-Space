@@ -1,24 +1,27 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass{article}
+
+% ── NeurIPS 2026 style ────────────────────────────────────────────────────────
+% Pass natbib options before NeurIPS loads it
+\PassOptionsToPackage{numbers,sort&compress}{natbib}
+% "preprint" shows author names and adds "Preprint" footer (appropriate for
+% course projects that are not blind submissions)
+\usepackage[preprint]{neurips_2026}
 
 % ── Packages ──────────────────────────────────────────────────────────────────
-\usepackage[margin=2.5cm]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage{microtype}
-\usepackage{amsmath,amssymb}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{nicefrac}
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{graphicx}
 \usepackage{subcaption}
 \usepackage{xcolor}
+\usepackage{url}
 \usepackage{hyperref}
 \usepackage{cleveref}
 \usepackage{enumitem}
-\usepackage[numbers,sort&compress]{natbib}
 \usepackage{array}
-\usepackage{tabularx}
-\usepackage{float}
 
 \hypersetup{
   colorlinks=true, linkcolor=blue!70!black,
@@ -28,20 +31,17 @@
 \newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
 
 % ── Title ─────────────────────────────────────────────────────────────────────
-\title{%
-  \textbf{Semantic Similarity Measurement in Latent Space}\\
-  \textbf{for LLM Prediction Evaluation}\\[0.4em]
-  \large AIAA 4051 — Final Research Project Report
+\title{Semantic Similarity Measurement in Latent Space\\
+       for LLM Prediction Evaluation}
+
+\author{%
+  Haodong Xu, Chi Kit WONG, Sida Zhang \\
+  The Hong Kong University of Science and Technology (Guangzhou) \\
+  AIAA 4051 --- Final Research Project Report
 }
-\author{
-  Haodong Xu \quad Chi Kit WONG \quad Sida Zhang\\[0.2em]
-  \small The Hong Kong University of Science and Technology (Guangzhou)
-}
-\date{April 2026}
 
 \begin{document}
 \maketitle
-\thispagestyle{empty}
 
 % ── Abstract ──────────────────────────────────────────────────────────────────
 \begin{abstract}
@@ -56,22 +56,21 @@ pretrained embedding models (BGE-base-en-v1.5, all-MiniLM-L6-v2, E5-base-v2) and
 measure AUC as the primary discriminability metric.
 Our main findings are: (1) cosine similarity is a strong correctness indicator for
 short-form QA (AUC up to 0.976) but degrades substantially for long-form QA
-(TruthfulQA AUC~0.72–0.81); (2) chain-of-thought reasoning hurts discriminability
+(TruthfulQA AUC~0.72--0.81); (2) chain-of-thought reasoning hurts discriminability
 for short answers but unexpectedly improves it for TruthfulQA; (3) E5-base-v2 is the
 most robust embedding model across tasks.
-We further conduct failure analysis, categorising errors into three types—lexical
-variation, semantic ambiguity, and long-form reasoning complexity—and propose four
-improvement methods. A trained hyperbolic projection (HELM-style) achieves the
-largest consistent gains on TruthfulQA (+7.1\%--+12.3\% AUC), while sentence-level
-MaxSim and span extraction provide complementary improvements in the thinking mode.
+We further conduct failure analysis, categorising errors into three types---lexical
+variation, semantic ambiguity, and long-form reasoning complexity---and propose four
+improvement methods. A trained hyperbolic projection (HELM-style) shows promising
+held-out gains on TruthfulQA (+0.052--+0.098 AUC points), although direct comparison
+with full-set post-hoc methods should be interpreted carefully because it is evaluated
+on a held-out split.
+Sentence-level MaxSim and span extraction provide complementary improvements in the
+thinking mode.
 Finally, compatibility experiments on the TA baseline artifacts confirm the
 short-vs-long similarity gap after correcting the HHEM loading issue, with HHEM
 providing discriminative labels for SciQ and TruthfulQA.
 \end{abstract}
-
-\newpage
-\tableofcontents
-\newpage
 
 % ── 1. Introduction ───────────────────────────────────────────────────────────
 \section{Introduction}
@@ -88,7 +87,7 @@ similarity as a lightweight, model-agnostic proxy for correctness.
 
 This approach raises two fundamental questions.
 First, is embedding similarity genuinely discriminative between correct and incorrect
-predictions—and to what degree?
+predictions---and to what degree?
 Second, does the answer depend on the \emph{type} of QA task (concise factual answers
 vs.\ open-ended explanations)?
 
@@ -106,7 +105,7 @@ Our contributions are:
         (\Cref{sec:failure});
   \item Evaluation of four improvement strategies, including a trained hyperbolic
         projection that achieves consistent gains on TruthfulQA
-        (\Cref{sec:improvement}).
+        (\Cref{sec:improvement});
   \item A compatibility check against the TA baseline pipeline and full-size TA
         datasets, including an analysis of the original HHEM and MPNet artifacts
         (\Cref{sec:ta-baseline}).
@@ -147,15 +146,39 @@ demonstrate that hyperbolic geometry captures hierarchical semantic structure mo
 faithfully than Euclidean cosine similarity.
 We evaluate a HELM-inspired trained projection head as an improvement strategy.
 
+\paragraph{Summary.}
+\Cref{tab:related} contrasts prior evaluation approaches and highlights the
+limitations our work addresses.
+
+\begin{table}[t]
+\centering
+\caption{Comparison between prior evaluation methods and our study.}
+\label{tab:related}
+\begin{tabular}{p{0.20\linewidth} p{0.30\linewidth} p{0.38\linewidth}}
+\toprule
+\textbf{Method family} & \textbf{Representative work} & \textbf{Limitation addressed by our work} \\
+\midrule
+Lexical metrics & EM, token-F1 & Fail on paraphrases and semantic equivalence. \\
+Embedding metrics & BERTScore, SBERT, E5, BGE & Measure similarity, but not calibrated as correctness classifiers across diverse QA tasks. \\
+Factuality / NLI metrics & NLI-style consistency, HHEM & More factual but model-dependent and expensive. \\
+LLM-as-judge & GPT-style evaluators & Powerful but costly and less reproducible. \\
+Hyperbolic methods & Poincaré embeddings, HELM & Capture hierarchy, but require training rather than post-hoc mapping. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 % ── 3. Methodology ────────────────────────────────────────────────────────────
 \section{Methodology}
 \label{sec:method}
 
-\begin{figure}[H]
+\begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/method_figure.png}
   \vspace{-0.5em}
-  \caption{Overview of the proposed evaluation pipeline. The figure summarizes the full process from dataset selection and LLM inference to correctness labeling, embedding-based similarity scoring, AUC evaluation, failure analysis, and metric improvement.}
+  \caption{Overview of the proposed evaluation pipeline. The figure summarizes the
+  full process from dataset selection and LLM inference to correctness labeling,
+  embedding-based similarity scoring, AUC evaluation, failure analysis, and metric
+  improvement.}
   \label{fig:method}
 \end{figure}
 
@@ -166,8 +189,8 @@ We evaluate on four publicly available datasets covering complementary QA regime
 \begin{itemize}[nosep]
   \item \textbf{SciQ}~\citep{welbl2017sciq}: multiple-choice science questions with
         unambiguous, short ground-truth answers.  We sample 500 instances.
-  \item \textbf{SimpleQA} (OpenAI): single-hop factual questions with a single
-        short answer string.  We sample 500 instances.
+  \item \textbf{SimpleQA}~\citep{openai2024simpleqa}: single-hop factual questions
+        with a single short answer string.  We sample 500 instances.
   \item \textbf{Natural Questions (NQ)}~\citep{kwiatkowski2019nq}: open-domain
         questions with short answer spans extracted from Wikipedia.
         We sample 300 instances.
@@ -189,12 +212,18 @@ We run each dataset under two modes:
         Responses contain explicit reasoning steps before a final answer.
 \end{description}
 
-Ground-truth correctness labels are produced by a hybrid
-\emph{exact-match / contains-match} criterion on normalised text:
+Correctness labels are produced by dataset-specific automatic rules.
+For short-form datasets (SciQ and SimpleQA), we use normalized exact match with
+substring-containment fallback:
 \begin{equation}
   \text{is\_correct} = \max_i \bigl[\texttt{em}(p, g_i) + \texttt{contains}(p, g_i)\bigr] > 0
 \end{equation}
 where $p$ is the prediction and $\{g_i\}$ is the set of accepted answers.
+For long-form datasets (NQ), we compute the maximum token-level F1 between the
+prediction and the accepted ground-truth answers, and label a prediction as correct
+when the score exceeds the configured threshold.
+For TruthfulQA, the prediction is compared against the list of accepted correct answers.
+These automatic labels serve as silver labels for evaluating embedding-score discriminability.
 
 \subsection{Embedding Models}
 
@@ -220,17 +249,17 @@ A threshold $\tau^*$ is selected by maximising Youden's J statistic.
 Statistical significance is assessed by two-sample $t$-tests comparing correct vs.\
 incorrect similarity distributions.
 
-% ── 4. Experiments ────────────────────────────────────────────────────────────
+% ── 4. Experimental Setup ─────────────────────────────────────────────────────
 \section{Experimental Setup}
 \label{sec:setup}
 
 \paragraph{Correctness rate.}
 The datasets exhibit different natural difficulty for Qwen3-4B
-(\Cref{tab:accuracy}): SciQ is easiest (52–61\%), while SimpleQA is hardest (3.2\%).
+(\Cref{tab:accuracy}): SciQ is easiest (52--61\%), while SimpleQA is hardest (3.2\%).
 
-\begin{table}[ht]
+\begin{table}[t]
 \centering
-\caption{Qwen3-4B accuracy (exact/contains match) per dataset and generation mode.}
+\caption{Qwen3-4B correctness rate under the dataset-specific automatic labeling rule.}
 \label{tab:accuracy}
 \begin{tabular}{lrrrr}
 \toprule
@@ -249,7 +278,7 @@ All 24 (dataset, mode, model) configurations yield $p \ll 0.001$ in
 two-sample $t$-tests, confirming that the cosine similarity distributions of
 correct and incorrect predictions are reliably separated (\Cref{tab:stats}).
 
-\begin{table}[ht]
+\begin{table}[t]
 \centering
 \caption{Cosine similarity statistics (BGE, no\_thinking). All $p$-values $\ll 0.001$.}
 \label{tab:stats}
@@ -266,15 +295,15 @@ TruthfulQA & 0.791 & 0.678 & +0.113          & $1.45\times10^{-22}$ \\
 \end{tabular}
 \end{table}
 
-% ── 5. Results ────────────────────────────────────────────────────────────────
-\section{Results}
+% ── 5. Results and Analysis ───────────────────────────────────────────────────
+\section{Results and Analysis}
 \label{sec:results}
 
 \subsection{Main Results}
 
 \Cref{tab:main} reports AUC across all 24 configurations.
 
-\begin{table}[ht]
+\begin{table}[t]
 \centering
 \caption{AUC (Area Under ROC Curve) for all dataset / mode / embedding-model combinations.
 Best per dataset/mode in \textbf{bold}.}
@@ -298,24 +327,24 @@ TruthfulQA & Long  & 0.743 & 0.723 & 0.784 & 0.801 & 0.763 & \textbf{0.813} \\
 
 Key observations:
 \begin{itemize}[nosep]
-  \item Short-form AUC is uniformly high (0.879–0.976), confirming that cosine
+  \item Short-form AUC is uniformly high (0.879--0.976), confirming that cosine
         similarity is a reliable correctness proxy for concise factual answers.
-  \item TruthfulQA exhibits markedly lower AUC (0.72–0.81), reflecting the
+  \item TruthfulQA exhibits markedly lower AUC (0.72--0.81), reflecting the
         difficulty of separating correct from plausible-but-wrong answers in
         adversarial long-form settings.
   \item E5-base-v2 is the most robust model: it ranks first or second in 5 of 8
         (dataset, mode) combinations and achieves the best cross-task average AUC.
 \end{itemize}
 
-\begin{figure}[ht]
+\begin{figure}[t]
   \centering
   \begin{subfigure}[b]{0.48\textwidth}
     \includegraphics[width=\linewidth]{figures/roc_no_thinking.pdf}
-    \caption{ROC curves — no\_thinking mode}
+    \caption{ROC curves --- no\_thinking mode}
   \end{subfigure}\hfill
   \begin{subfigure}[b]{0.48\textwidth}
     \includegraphics[width=\linewidth]{figures/roc_thinking.pdf}
-    \caption{ROC curves — thinking mode}
+    \caption{ROC curves --- thinking mode}
   \end{subfigure}
   \caption{ROC curves (BGE-base) for all four datasets.
   Short-form datasets (blue/orange) consistently exhibit higher AUC than
@@ -338,7 +367,7 @@ For TruthfulQA, many incorrect predictions are \emph{near-correct paraphrases} o
 common misconceptions, whose surface similarity to ground-truth strings is deceptively
 high (mean FP similarity 0.865 under BGE).
 
-\begin{figure}[ht]
+\begin{figure}[t]
   \centering
   \includegraphics[width=0.7\textwidth]{figures/short_vs_long_bge-base.pdf}
   \caption{AUC comparison: short-form vs.\ long-form QA tasks (BGE-base, no\_thinking).
@@ -355,7 +384,7 @@ BGE performs best on SimpleQA (0.976) and is well-balanced overall.
 E5 exhibits the most consistent performance across both short- and long-form tasks,
 making it the recommended single-model choice.
 
-\begin{figure}[ht]
+\begin{figure}[t]
   \centering
   \begin{subfigure}[b]{0.48\textwidth}
     \includegraphics[width=\linewidth]{figures/auc_heatmap_no_thinking.pdf}
@@ -379,9 +408,9 @@ The results reveal a \textbf{bidirectional effect}:
 
 \begin{itemize}[nosep]
   \item \emph{Short-form tasks} (SciQ, SimpleQA): AUC \textbf{decreases} by
-        approximately 3–4 points.  CoT responses are longer and embed as denser
+        approximately 3--4 points.  CoT responses are longer and embed as denser
         semantic mixtures, increasing the distance from short ground-truth strings.
-  \item \emph{TruthfulQA}: AUC \textbf{increases} by 2–3 points.
+  \item \emph{TruthfulQA}: AUC \textbf{increases} by 2--3 points.
         CoT reasoning suppresses Qwen3-4B's tendency to echo memorised
         misconceptions; the resulting predictions have clearer separation from
         incorrect alternatives in embedding space
@@ -390,7 +419,7 @@ The results reveal a \textbf{bidirectional effect}:
         suggesting that 4B-scale CoT can over-think simple single-hop questions.
 \end{itemize}
 
-\begin{figure}[ht]
+\begin{figure}[t]
   \centering
   \includegraphics[width=0.65\textwidth]{figures/thinking_ablation_bge-base.pdf}
   \caption{$\Delta$AUC (\texttt{thinking} $-$ \texttt{no\_thinking}) for BGE-base.
@@ -398,7 +427,7 @@ The results reveal a \textbf{bidirectional effect}:
   \label{fig:ablation}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[t]
   \centering
   \includegraphics[width=0.72\textwidth]{figures/distributions_no_thinking_bge-base.pdf}
   \caption{Cosine similarity distributions (correct vs.\ incorrect) per dataset,
@@ -421,7 +450,7 @@ The NLP compatibility script has completed no-thinking generation for the two
 short-form TA datasets.  On the full TA-prepared splits, the same normalised
 exact/contains rule gives the results in \Cref{tab:ta-compat}.
 
-\begin{table}[ht]
+\begin{table}[t]
 \centering
 \caption{Full-size TA compatibility predictions evaluated with exact/contains matching.}
 \label{tab:ta-compat}
@@ -449,7 +478,7 @@ After fixing the HHEM tied-weight loading bug and rerunning
 original TA artifacts provide valid HHEM and MPNet outputs for SciQ and
 TruthfulQA, while NQ currently has predictions only (\Cref{tab:ta-original}).
 
-\begin{table}[ht]
+\begin{table}[t]
 \centering
 \caption{Summary of original TA pipeline artifacts. HHEM is thresholded at 0.5.}
 \label{tab:ta-original}
@@ -480,7 +509,12 @@ supports the short-form/long-form degradation observed in \Cref{sec:shortlong}.
 
 We extract the top-50 false positives (FP: high similarity but incorrect) and
 top-50 false negatives (FN: low similarity but correct) per configuration using
-the Youden-optimal threshold, and manually categorise them into three types.
+the Youden-optimal threshold, and categorize them using rule-based diagnostic
+heuristics.
+We then inspect representative cases from each category to interpret the dominant
+error patterns.
+The failure categories should be understood as diagnostic labels rather than
+human-annotated ground truth.
 
 \paragraph{Lexical variation.}
 The prediction contains the correct factual content but uses different surface forms
@@ -491,7 +525,7 @@ Affects primarily short-form tasks (SciQ: 14 FP/FN; SimpleQA: 22 FP/FN).
 \paragraph{Semantic ambiguity.}
 The question admits multiple plausible answers that occupy overlapping regions of
 embedding space, making threshold-based separation unreliable.
-Example: TruthfulQA Q: ``What is the most popular sport in America?''—both
+Example: TruthfulQA Q: ``What is the most popular sport in America?''---both
 ``American football'' and ``baseball'' achieve high similarity to the ground truth
 string ``American football''.
 Affects SciQ (16 cases) and SimpleQA (11 cases).
@@ -504,7 +538,7 @@ wrong-answer ground truth.
 This is the dominant failure type for NQ and TruthfulQA (51 and 100+ cases
 respectively, \Cref{fig:failure}).
 
-\begin{figure}[ht]
+\begin{figure}[t]
   \centering
   \begin{subfigure}[b]{0.48\textwidth}
     \includegraphics[width=\linewidth]{figures/failure_causes_no_thinking.pdf}
@@ -529,7 +563,7 @@ This systematic bias explains a significant fraction of the AUC drop from
 
 \Cref{tab:failure} summarises the failure statistics.
 
-\begin{table}[ht]
+\begin{table}[t]
 \centering
 \caption{Failure counts (top-50 FP + FN) per dataset (BGE-base, no\_thinking).}
 \label{tab:failure}
@@ -546,6 +580,12 @@ TruthfulQA & 50 & 50 &  0 &  0 & 100 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Heuristic label caveat.}
+The failure-cause labels are produced by task-type rules; in particular,
+long-form QA cases are assigned to the long-form reasoning category by task type,
+so the counts should be interpreted as qualitative diagnostics rather than precise
+human annotations.
 
 % ── 7. Improvement Methods ────────────────────────────────────────────────────
 \section{Improvement Methods and Results}
@@ -591,12 +631,16 @@ Euclidean embeddings into the Poincaré ball.
 Training uses binary cross-entropy on correct/incorrect pairs with a
 RiemannianAdam optimiser over 30 epochs, with 80/20 train/test splits.
 Validation AUCs: BGE 0.934, MiniLM 0.937, E5 \textbf{0.952}.
+Since HELM is evaluated only on the held-out test split, its numbers are not
+directly comparable to full-set post-hoc methods unless the baseline is recomputed
+on the same split.
 
-\textbf{Results}: HELM provides the largest and most consistent gains on
-TruthfulQA (BGE $+$12.3\%, MiniLM $+$10.5\%, E5 $+$7.1\%), demonstrating that
-hierarchical hyperbolic geometry captures the \emph{contrastive} semantic structure
-of adversarial answers better than Euclidean cosine similarity.
-Gains on SciQ and SimpleQA/no\_thinking are moderate (+1\%–+10\%).
+\textbf{Results (held-out test split)}: HELM provides the largest and most
+consistent gains on TruthfulQA (BGE $+$9.9, MiniLM $\approx$$+$8.0,
+E5 $\approx$$+$5.8 AUC points), demonstrating that hierarchical hyperbolic geometry
+captures the \emph{contrastive} semantic structure of adversarial answers better than
+Euclidean cosine similarity.
+Gains on SciQ and SimpleQA/no\_thinking are moderate (+1--+6 AUC points).
 NQ/thinking results are noisy due to the small test set ($n_{\text{pos}}=4$).
 
 \subsection{Method D: Span-MaxSim}
@@ -605,14 +649,15 @@ We identify ``answer indicator'' spans in CoT predictions using regex patterns
 (\emph{``the answer is'', ``therefore'', ``thus''}, etc.) and embed only the
 extracted final-answer sentence.
 \textbf{Results}: Span-MaxSim provides small positive gains on NQ/thinking
-($\Delta$AUC $+$0.7\%–$+$1.6\%) but hurts TruthfulQA/thinking significantly
-($-$8.2\% to $-$9.7\%) because multi-answer ground truths require full-prediction
-coverage for accurate MaxSim, which span extraction destroys.
+($\Delta$AUC $+$0.7--$+$1.6 AUC points) but hurts TruthfulQA/thinking
+significantly ($-$8.2 to $-$9.3 AUC points) because multi-answer ground truths
+require full-prediction coverage for accurate MaxSim, which span extraction destroys.
 
-\begin{table}[ht]
+\begin{table}[t]
 \centering
 \caption{$\Delta$AUC relative to baseline for all improvement methods
-(BGE-base; full evaluation set except HELM test split).  Best per row in \textbf{bold}.}
+(BGE-base).  Poincaré, MaxSim, and Span-MaxSim are evaluated on the full set;
+HELM is evaluated on its held-out test split only.  Best per row in \textbf{bold}.}
 \label{tab:improvement}
 \setlength{\tabcolsep}{4.5pt}
 \begin{tabular}{llrrrr}
@@ -632,7 +677,7 @@ TruthfulQA & thinking     & 0.000 & $-$0.057 & \textbf{+0.098} & $-$0.093 \\
 \end{tabular}
 \end{table}
 
-\begin{figure}[ht]
+\begin{figure}[t]
   \centering
   \includegraphics[width=0.72\textwidth]{figures/delta_auc_boxplot.pdf}
   \caption{$\Delta$AUC distribution for each improvement method across all 24
@@ -648,13 +693,33 @@ The results highlight a fundamental dichotomy: \emph{structural} improvements
 For production use, HELM-style training is the recommended approach for long-form QA
 evaluation; MaxSim is a useful add-on for CoT-based short-form tasks.
 
-% ── 8. Conclusion ─────────────────────────────────────────────────────────────
+% ── 8. Limitations ────────────────────────────────────────────────────────────
+\section{Limitations}
+\label{sec:limitations}
+
+\begin{enumerate}[nosep]
+  \item \textbf{Silver correctness labels.}  Correctness labels are produced by
+        automatic rules (exact match, token-F1, or accepted-answer lists) rather
+        than human annotations.  Tasks requiring subjective judgement may need
+        human-validated labels.
+  \item \textbf{Single ground-truth reference.}  The embedding similarity is
+        computed against the first ground-truth string.  For datasets with multiple
+        valid paraphrase answers, this may underestimate semantic equivalence.
+  \item \textbf{Class imbalance.}  Some datasets are heavily imbalanced---SimpleQA
+        has a correctness rate of only 3.2\%---which can inflate AUC variance for
+        small positive sets.
+  \item \textbf{HELM test-split evaluation.}  The trained hyperbolic projection is
+        evaluated on a held-out split rather than the full dataset.  Direct numerical
+        comparison with full-set post-hoc methods should be interpreted carefully.
+\end{enumerate}
+
+% ── 9. Conclusion ─────────────────────────────────────────────────────────────
 \section{Conclusion}
 \label{sec:conclusion}
 
 We systematically investigated whether cosine similarity in embedding space is a
 reliable proxy for LLM prediction correctness across four QA benchmarks.
-Our study yields four key takeaways:
+Our study yields five key takeaways:
 
 \begin{enumerate}[nosep]
   \item \textbf{Short-form QA: yes, reliably.}  AUC reaches 0.976 (SimpleQA/BGE),
@@ -666,8 +731,8 @@ Our study yields four key takeaways:
         discriminability (format mismatch) but helps TruthfulQA (suppresses
         hallucination echoes).
   \item \textbf{Trained hyperbolic projection is the most effective improvement.}
-        HELM provides consistent +7\%--+12\% AUC gains on TruthfulQA without
-        dataset-specific engineering.
+        HELM provides consistent +0.052--+0.098 AUC point gains on TruthfulQA
+        (held-out test split) without dataset-specific engineering.
   \item \textbf{TA baseline compatibility is partially validated.}  The
         compatibility script processes full-size TA SciQ and SimpleQuestionsWiki
         predictions, and corrected TA HHEM/MPNet outputs reproduce the
@@ -680,18 +745,42 @@ objective, and extending the framework to RAG settings where faithfulness and
 factual correctness must both be evaluated simultaneously.
 
 \section*{Contributions of Individual Members}
-\addcontentsline{toc}{section}{Contributions of Individual Members}
 
-All group members contributed equally to this project.
+All group members contributed to this project. The main responsibilities were:
 
 \begin{itemize}[nosep]
-  \item Haodong Xu: Completed the main coding work and experiments, and drafted part of the report
-  \item Chi Kit WONG: Complete the creation of the poster and the methodology diagram for the Methodology section of the report.
+  \item Haodong Xu: Completed the main coding work and experiments, and drafted part of the report.
+  \item Chi Kit WONG: Created the poster and the methodology diagram for the Methodology section.
   \item Sida Zhang: Implemented improvement methods and proofread the paper.
 \end{itemize}
 
 % ── References ────────────────────────────────────────────────────────────────
 \bibliographystyle{unsrtnat}
 \bibliography{references}
+
+% ── Appendix ──────────────────────────────────────────────────────────────────
+\appendix
+\section{Report--Code Mapping}
+\label{sec:appendix}
+
+\begin{table}[t]
+\centering
+\caption{Mapping from report components to implementation files.}
+\label{tab:code-mapping}
+\begin{tabular}{p{0.33\linewidth} p{0.53\linewidth}}
+\toprule
+\textbf{Report component} & \textbf{Implementation source} \\
+\midrule
+Dataset preparation & \texttt{scripts/prepare\_data.py} \\
+Qwen3-4B generation & \texttt{scripts/generate\_predictions.py} \\
+Correctness labeling & \texttt{src/evaluation/correctness.py} \\
+Embedding extraction & \texttt{scripts/encode\_embeddings.py} \\
+AUC / ROC analysis & \texttt{scripts/similarity\_analysis.py}, \texttt{results/summary\_auc.csv} \\
+Failure analysis & \texttt{scripts/failure\_analysis.py}, \texttt{results/failure\_summary.csv} \\
+Improvement methods & \texttt{scripts/improvement\_analysis.py}, \texttt{scripts/train\_hyperbolic.py} \\
+TA baseline compatibility & \texttt{scripts/evaluate\_ta\_baseline\_compatibility.py} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \end{document}
