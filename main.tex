@@ -736,9 +736,10 @@ TruthfulQA & thinking     & 0.000 & $-$0.057 & \textbf{+0.098} & $-$0.093 \\
 \end{figure}
 
 \paragraph{Summary.}
-The results highlight a fundamental dichotomy: \emph{structural} improvements
-(trained hyperbolic projection) yield consistent cross-task gains, while
-\emph{heuristic} improvements (MaxSim, Span extraction) are task- and mode-specific.
+The results, illustrated in \Cref{fig:delta}, highlight a fundamental dichotomy:
+\emph{structural} improvements (trained hyperbolic projection) yield consistent
+cross-task gains, while \emph{heuristic} improvements (MaxSim, Span extraction)
+are task- and mode-specific.
 For production use, HELM-style training is the recommended approach for long-form QA
 evaluation; MaxSim is a useful add-on for CoT-based short-form tasks.
 
@@ -811,6 +812,8 @@ All group members contributed to this project. The main responsibilities were:
 \appendix
 \section{Report--Code Mapping}
 \label{sec:appendix}
+
+\Cref{tab:code-mapping} provides a quick reference for code review, linking each result in the paper to the script that produced it.
 
 \begin{table}[ht]
 \centering
