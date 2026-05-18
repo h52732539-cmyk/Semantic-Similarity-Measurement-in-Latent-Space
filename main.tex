@@ -223,12 +223,11 @@ Capture hierarchy, but require training rather than post-hoc mapping. \\
   \centering
   \includegraphics[width=\textwidth]{figures/method_figure_v2.png}
   \vspace{-0.5em}
-  \caption{Overview of the proposed evaluation pipeline. The figure summarizes the
-  full process from dataset selection and LLM inference to correctness labeling,
-  embedding-based similarity scoring, AUC evaluation, failure analysis, and metric
-  improvement.}
+  \caption{Overview of the proposed evaluation pipeline.}
   \label{fig:method}
 \end{figure}
+
+\Cref{fig:method} provides an end-to-end overview of our evaluation pipeline, including dataset construction, LLM inference, correctness labeling, embedding-based similarity scoring, downstream evaluation, failure analysis, and improvement methods.
 
 \subsection{Datasets}
 
@@ -350,6 +349,7 @@ TruthfulQA & 0.791 & 0.678 & +0.113          & $1.45\times10^{-22}$ \\
 \subsection{Main Results}
 
 \Cref{tab:main} reports AUC across all 24 configurations.
+The corresponding ROC curves for BGE-base are shown in \Cref{fig:roc}.
 
 \begin{table}[t]
 \centering
@@ -403,7 +403,8 @@ Key observations:
 \subsection{Short-form vs.\ Long-form QA}
 \label{sec:shortlong}
 
-\Cref{fig:shortlong} visualises the similarity score distributions.
+% \Cref{fig:shortlong} visualises the similarity score distributions.
+\Cref{fig:shortlong} visualises the short-form vs.\ long-form AUC gap, while \Cref{fig:dist} shows the underlying correct-vs.-incorrect similarity distributions.
 The gap between correct and incorrect distributions is substantially wider for
 short-form tasks (SciQ $\Delta\bar{s}=0.228$, SimpleQA $\Delta\bar{s}=0.371$)
 compared to long-form tasks (NQ $\Delta\bar{s}=0.226$, TruthfulQA $\Delta\bar{s}=0.113$).
